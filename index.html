@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Thi Trực Tuyến - An Phúc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']], // Nhận diện công thức trong dấu $...$
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {fontCache: 'global'}
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* CSS tùy chỉnh cho nội dung đề thi */
+        .latex-content img { display: inline-block; max-width: 100%; margin-top: 10px; margin-bottom: 10px; }
+        .hidden { display: none; }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+
+    <header class="bg-blue-700 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold uppercase">Thi Trực Tuyến An Phúc</h1>
+            <div>
+                <button onclick="showSection('home')" class="px-3 py-1 hover:bg-blue-800 rounded transition">Trang chủ</button>
+                <button onclick="toggleAdminPanel()" class="px-3 py-1 hover:bg-blue-800 rounded transition">Admin</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto p-4 max-w-5xl">
+        
+        <div id="admin-section" class="hidden bg-white p-6 rounded-lg shadow-lg mb-6 border-t-4 border-orange-500">
+            <h2 class="text-lg font-bold mb-4 text-orange-600">Khu vực Quản trị viên</h2>
+            
+            <div id="login-form" class="flex items-center">
+                <input type="password" id="admin-pass" placeholder="Nhập mật khẩu quản trị" class="border p-2 rounded mr-2 w-64 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                <button onclick="checkAdmin()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded transition">Đăng nhập</button>
+            </div>
+
+            <div id="upload-form" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block mb-2 font-medium">Tên đề thi:</label>
+                        <input type="text" id="exam-title" class="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-blue-300" placeholder="VD: Đề thi thử Toán 12...">
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-medium">Thời gian làm bài (phút):</label>
+                        <input type="number" id="exam-duration" value="90" class="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2 font-medium">Chọn file đề (.docx):</label>
+                    <input type="file" id="file-input" accept=".docx" class="border p-2 w-full bg-gray-50 rounded">
+                    <p class="text-xs text-gray-500 mt-1">*File word cần đúng định dạng mẫu (Câu 1., A., B., C., D., Lời giải, hình ảnh...)</p>
+                </div>
+                <button onclick="uploadExam()" id="btn-upload" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-bold shadow transition w-full md:w-auto">
+                    Upload & Tạo đề
+                </button>
+                <p id="upload-status" class="mt-3 text-sm font-semibold text-blue-600"></p>
+            </div>
+        </div>
+
+        <div id="home-section">
+            <div class="flex justify-between items-end mb-6 border-b pb-2">
+                <h2 class="text-2xl font-bold text-gray-800">Danh sách đề thi hiện có</h2>
+                <button onclick="fetchExams()" class="text-blue-600 text-sm underline">Làm mới danh sách</button>
+            </div>
+            
+            <div id="exam-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="text-center col-span-3 py-10">
+                    <div class="loading-spinner"></div>
+                    <p class="mt-2 text-gray-500">Đang tải dữ liệu...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="exam-section" class="hidden">
+            <div class="bg-white p-4 rounded shadow-md sticky top-0 z-40 flex justify-between items-center border-b-2 border-blue-500">
+                <div>
+                    <h2 id="current-exam-title" class="text-lg font-bold text-blue-800 line-clamp-1"></h2>
+                    <p class="text-sm text-gray-600">Thí sinh: <span id="student-info-display" class="font-semibold"></span></p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">Thời gian còn lại</p>
+                    <div class="text-red-600 font-bold text-2xl font-mono" id="timer">00:00</div>
+                </div>
+            </div>
+
+            <div id="student-form" class="bg-white p-8 rounded-lg shadow-lg max-w-md mx-auto mt-10">
+                <h3 class="text-xl font-bold mb-6 text-center text-gray-800">Thông tin thí sinh</h3>
+                <div class="space-y-4">
+                    <input type="text" id="s-name" placeholder="Họ và tên của bạn" class="border p-3 w-full rounded focus:ring-2 focus:ring-blue-400 outline-none">
+                    <input type="text" id="s-class" placeholder="Lớp / Trường" class="border p-3 w-full rounded focus:ring-2 focus:ring-blue-400 outline-none">
+                    <button onclick="startExam()" class="bg-blue-600 hover:bg-blue-700 text-white w-full py-3 rounded font-bold text-lg transition shadow-lg transform hover:scale-105">
+                        BẮT ĐẦU LÀM BÀI
+                    </button>
+                </div>
+            </div>
+
+            <div id="questions-container" class="hidden space-y-8 mt-6">
+                </div>
+
+            <div id="submit-area" class="hidden mt-10 mb-20 text-center">
+                <button onclick="confirmSubmit()" class="bg-green-600 hover:bg-green-700 text-white px-10 py-4 rounded-full text-xl font-bold shadow-xl transition transform hover:scale-105">
+                    NỘP BÀI THI
+                </button>
+            </div>
+        </div>
+
+        <div id="result-section" class="hidden bg-white p-6 rounded-lg shadow-lg">
+            <h2 class="text-3xl font-bold text-center mb-2 text-gray-800">Kết Quả Làm Bài</h2>
+            <div class="flex justify-center items-center flex-col mb-8">
+                <div class="text-6xl font-extrabold text-blue-600" id="final-score">0.0</div>
+                <p class="text-gray-500 mt-2">Điểm số của bạn</p>
+            </div>
+            
+            <div class="border-t pt-6">
+                <h3 class="text-xl font-bold mb-4 text-gray-700">Chi tiết lời giải:</h3>
+                <div id="review-container" class="space-y-8">
+                    </div>
+            </div>
+            
+            <div class="text-center mt-10">
+                <button onclick="location.reload()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded transition">
+                    Quay lại màn hình chính
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CẤU HÌNH ---
+        // Link Web App Google Apps Script của bạn
+        const API_URL = "https://script.google.com/macros/s/AKfycbzPz53x0qzJLdUDMiWkBrgc7wFAeeV43MKgzoDYktkR1qS8WhKDGv5YJ03XwTefjcYL/exec"; 
+
+        // Biến toàn cục
+        let allQuestions = [];
+        let currentExamId = "";
+        let currentExamTitle = "";
+        let timerInterval;
+        let examDurationSeconds = 0;
+
+        // --- CÁC HÀM CHÍNH ---
+        
+        // 1. Lấy danh sách đề thi từ Google Sheet
+        async function fetchExams() {
+            const container = document.getElementById('exam-list');
+            container.innerHTML = '<div class="text-center col-span-3"><div class="loading-spinner"></div></div>';
+            
+            try {
+                const res = await fetch(API_URL + "?action=getExams");
+                const json = await res.json();
+                
+                container.innerHTML = "";
+                
+                if(!json.data || json.data.length === 0) {
+                    container.innerHTML = "<p class='text-center col-span-3 text-gray-500'>Hiện chưa có đề thi nào.</p>";
+                    return;
+                }
+
+                json.data.forEach(exam => {
+                    // Chuyển đổi timestamp thành ngày tháng
+                    const dateObj = new Date(exam.created_at);
+                    const dateStr = dateObj.toLocaleDateString('vi-VN');
+
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-6 rounded-lg shadow hover:shadow-xl transition border border-gray-100 flex flex-col justify-between h-full";
+                    div.innerHTML = `
+                        <div>
+                            <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-200 dark:text-blue-800">Mới</span>
+                            <h3 class="text-lg font-bold mb-2 mt-2 text-gray-800 leading-tight">${exam.title}</h3>
+                            <div class="text-sm text-gray-600 space-y-1 mb-4">
+                                <p><span class="font-semibold">⏱ Thời gian:</span> ${exam.duration} phút</p>
+                                <p><span class="font-semibold">📅 Ngày tạo:</span> ${dateStr}</p>
+                            </div>
+                        </div>
+                        <button onclick="prepareExam('${exam.id}', '${exam.title}', ${exam.duration})" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full font-semibold transition">
+                            Vào thi ngay
+                        </button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = "<p class='text-red-500 text-center col-span-3'>Lỗi tải dữ liệu. Vui lòng kiểm tra kết nối internet.</p>";
+            }
+        }
+
+        // 2. Chuẩn bị vào thi (Hiển thị form nhập tên)
+        function prepareExam(id, title, duration) {
+            currentExamId = id;
+            currentExamTitle = title;
+            examDurationSeconds = duration * 60;
+
+            // Chuyển đổi giao diện
+            document.getElementById('home-section').classList.add('hidden');
+            document.getElementById('exam-section').classList.remove('hidden');
+            document.getElementById('admin-section').classList.add('hidden'); // Ẩn admin nếu đang mở
+            
+            // Reset các vùng
+            document.getElementById('current-exam-title').innerText = title;
+            document.getElementById('student-form').classList.remove('hidden');
+            document.getElementById('questions-container').classList.add('hidden');
+            document.getElementById('submit-area').classList.add('hidden');
+            document.getElementById('timer').innerText = formatTime(examDurationSeconds);
+        }
+
+        // 3. Bắt đầu làm bài (Load câu hỏi)
+        async function startExam() {
+            const name = document.getElementById('s-name').value.trim();
+            const className = document.getElementById('s-class').value.trim();
+            
+            if(!name || !className) {
+                alert("Vui lòng điền đầy đủ Họ tên và Lớp!");
+                return;
+            }
+
+            document.getElementById('student-info-display').innerText = `${name} - ${className}`;
+            document.getElementById('student-form').classList.add('hidden');
+            
+            const qContainer = document.getElementById('questions-container');
+            qContainer.innerHTML = '<div class="text-center mt-10"><div class="loading-spinner"></div><p class="mt-4">Đang tải đề thi...</p></div>';
+            qContainer.classList.remove('hidden');
+
+            try {
+                // Gọi API lấy câu hỏi
+                const res = await fetch(API_URL + `?action=getQuestions&examId=${currentExamId}`);
+                const json = await res.json();
+                allQuestions = json.data;
+                
+                renderQuestions(allQuestions);
+                document.getElementById('submit-area').classList.remove('hidden');
+
+                // Bắt đầu đếm ngược
+                startTimer(examDurationSeconds);
+            } catch (e) {
+                alert("Không thể tải đề thi. Vui lòng thử lại!");
+                location.reload();
+            }
+        }
+
+        // 4. Render câu hỏi ra màn hình
+        function renderQuestions(questions) {
+            const container = document.getElementById('questions-container');
+            container.innerHTML = "";
+            
+            questions.forEach((q, index) => {
+                const qNum = index + 1;
+                let html = `
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 latex-content" id="q-card-${index}">
+                    <div class="flex items-start">
+                        <span class="bg-blue-600 text-white font-bold py-1 px-3 rounded mr-3 text-sm flex-shrink-0">Câu ${qNum}</span>
+                        <div class="text-gray-800 text-lg w-full">
+                            ${formatText(q.question)}
+                        </div>
+                    </div>`;
+                
+                // Nếu có ảnh câu hỏi
+                if(q.image) {
+                    html += `<div class="mt-3 flex justify-center"><img src="${q.image}" class="rounded border shadow-sm max-h-96"></div>`;
+                }
+
+                // Xử lý hiển thị đáp án theo loại câu hỏi
+                html += `<div class="mt-4 ml-0 md:ml-12">`;
+
+                if(q.type === '1_choice') { // Trắc nghiệm 4 đáp án
+                    ['A', 'B', 'C', 'D'].forEach(opt => {
+                        const content = q.options[opt];
+                        if(content) {
+                            html += `
+                            <label class="flex items-start p-3 border rounded mb-2 hover:bg-blue-50 cursor-pointer transition">
+                                <input type="radio" name="q${index}" value="${opt}" class="mt-1 mr-3 w-5 h-5 text-blue-600">
+                                <span class="font-medium mr-2">${opt}.</span>
+                                <span>${formatText(content)}</span>
+                            </label>`;
+                        }
+                    });
+                } else if (q.type === 'true_false') { // Đúng Sai
+                    html += `
+                        <div class="mb-3 italic text-gray-600 text-sm bg-gray-50 p-2 rounded">
+                            Mệnh đề cho sẵn: <br>
+                            ${q.sub_questions ? formatText(q.sub_questions) : ''}
+                        </div>
+                        <div class="grid grid-cols-1 gap-2">
+                           ${renderTrueFalseInput(index, 'a')}
+                           ${renderTrueFalseInput(index, 'b')}
+                           ${renderTrueFalseInput(index, 'c')}
+                           ${renderTrueFalseInput(index, 'd')}
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2">*Điền Đ (Đúng) hoặc S (Sai)</p>
+                    `;
+                } else if (q.type === 'short') { // Trả lời ngắn
+                    html += `
+                        <label class="block mb-2 font-medium text-gray-700">Nhập đáp án của bạn:</label>
+                        <input type="text" name="q${index}" class="border border-gray-300 p-3 rounded w-full focus:outline-none focus:border-blue-500" placeholder="Ví dụ: 12.5 hoặc -5...">
+                    `;
+                }
+
+                html += `</div></div>`; // End answers div & card div
+                container.innerHTML += html;
+            });
+            
+            // Kích hoạt MathJax để render công thức
+            MathJax.typesetPromise();
+        }
+
+        function renderTrueFalseInput(qIndex, subId) {
+            return `
+            <div class="flex items-center space-x-3">
+                <span class="font-bold w-4 text-center">${subId})</span>
+                <input type="text" name="q${qIndex}_${subId}" class="border p-2 rounded w-20 text-center uppercase font-bold focus:ring-blue-500 focus:border-blue-500" placeholder="Đ/S" maxlength="1">
+            </div>`;
+        }
+
+        function formatText(text) {
+            if(!text) return "";
+            // Thay thế xuống dòng bằng <br> để hiển thị đúng HTML
+            return text.replace(/\n/g, '<br>');
+        }
+
+        // 5. Đồng hồ đếm ngược
+        function startTimer(duration) {
+            let timer = duration;
+            const display = document.getElementById('timer');
+            
+            timerInterval = setInterval(function () {
+                let minutes = parseInt(timer / 60, 10);
+                let seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    alert("Đã hết thời gian làm bài! Hệ thống sẽ tự động nộp bài.");
+                    submitExam();
+                }
+            }, 1000);
+        }
+
+        function formatTime(seconds) {
+            let m = Math.floor(seconds / 60);
+            let s = seconds % 60;
+            return (m < 10 ? "0"+m : m) + ":" + (s < 10 ? "0"+s : s);
+        }
+
+        // 6. Nộp bài
+        function confirmSubmit() {
+            if(confirm("Bạn có chắc chắn muốn nộp bài không?")) {
+                submitExam();
+            }
+        }
+
+        async function submitExam() {
+            clearInterval(timerInterval);
+            
+            // Hiệu ứng đang xử lý
+            const btnSubmit = document.querySelector('#submit-area button');
+            if(btnSubmit) {
+                btnSubmit.innerText = "Đang chấm điểm...";
+                btnSubmit.disabled = true;
+                btnSubmit.classList.add('opacity-50');
+            }
+
+            // Tính điểm logic (Client side - mang tính tham khảo nhanh)
+            let totalScore = 0;
+            let detail = [];
+            // Quy ước điểm: Trắc nghiệm 0.2, Điền khuyết 0.2. (Có thể sửa logic này)
+            // Đúng sai thì phức tạp hơn, ở đây tạm tính đơn giản.
+
+            allQuestions.forEach((q, index) => {
+                let isCorrect = false;
+                let userAnswer = "";
+                let scoreEarned = 0;
+
+                if(q.type === '1_choice') {
+                    const selected = document.querySelector(`input[name="q${index}"]:checked`);
+                    userAnswer = selected ? selected.value : "";
+                    if(userAnswer === q.correct) {
+                        scoreEarned = 0.2; // Điểm mỗi câu
+                        isCorrect = true;
+                    }
+                } else if (q.type === 'short') {
+                    userAnswer = document.querySelector(`input[name="q${index}"]`).value.trim();
+                    // So sánh tương đối (bỏ khoảng trắng)
+                    if(userAnswer.toLowerCase() === q.correct.toLowerCase()) {
+                        scoreEarned = 0.2;
+                        isCorrect = true;
+                    }
+                } else if (q.type === 'true_false') {
+                    // Logic đúng sai: Ở đây tạm thời gom hết input lại để hiển thị, chưa chấm điểm chi tiết từng ý
+                    let subAns = [];
+                    ['a','b','c','d'].forEach(id => {
+                        let val = document.querySelector(`input[name="q${index}_${id}"]`).value.trim().toUpperCase();
+                        subAns.push(`${id}:${val}`);
+                    });
+                    userAnswer = subAns.join(", ");
+                    // Logic chấm điểm đúng sai khá phức tạp (đúng 1 ý, 2 ý...), tạm thời để 0 điểm hiển thị
+                }
+                
+                totalScore += scoreEarned;
+
+                detail.push({
+                    qIndex: index,
+                    question: q.question,
+                    type: q.type,
+                    user: userAnswer,
+                    correct: q.correct, // Đáp án đúng từ data
+                    isCorrect: isCorrect,
+                    solution: q.solution,
+                    image: q.image
+                });
+            });
+
+            // Gửi dữ liệu về Sheet
+            const studentData = {
+                student_name: document.getElementById('s-name').value,
+                class_name: document.getElementById('s-class').value,
+                exam_title: currentExamTitle,
+                score: totalScore.toFixed(2),
+                detail: detail
+            };
+
+            try {
+                // Gửi request POST (no-cors để tránh lỗi trình duyệt chặn, dù không nhận được response JSON trực tiếp nhưng GAS vẫn chạy)
+                await fetch(API_URL + "?action=submitExam", {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(studentData)
+                });
+                
+                // Hiển thị kết quả (do mode no-cors không đọc được response, ta tự hiển thị dựa trên tính toán client)
+                showResult(totalScore.toFixed(2), detail);
+            } catch(e) {
+                console.error(e);
+                alert("Có lỗi khi gửi bài, nhưng kết quả đã được hiển thị bên dưới.");
+                showResult(totalScore.toFixed(2), detail);
+            }
+        }
+
+        // 7. Hiển thị kết quả chi tiết
+        function showResult(score, detail) {
+            document.getElementById('exam-section').classList.add('hidden');
+            document.getElementById('result-section').classList.remove('hidden');
+            
+            // Animation điểm số
+            const scoreEl = document.getElementById('final-score');
+            let current = 0;
+            const target = parseFloat(score);
+            const interval = setInterval(() => {
+                current += 0.1;
+                if(current >= target) {
+                    current = target;
+                    clearInterval(interval);
+                }
+                scoreEl.innerText = current.toFixed(2);
+            }, 30);
+
+            const container = document.getElementById('review-container');
+            container.innerHTML = "";
+
+            detail.forEach((item, i) => {
+                // Xác định màu sắc dựa trên đúng sai
+                let borderColor = item.isCorrect ? "border-green-500" : "border-red-500";
+                let badge = item.isCorrect 
+                    ? `<span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">ĐÚNG</span>` 
+                    : `<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded">SAI</span>`;
+                
+                // Với câu đúng sai thì không hiện đúng sai tổng quát
+                if(item.type === 'true_false') badge = `<span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">Xem lời giải</span>`;
+
+                let html = `
+                <div class="bg-white border-l-4 ${borderColor} shadow rounded p-4 latex-content">
+                    <div class="flex justify-between mb-2">
+                        <span class="font-bold text-gray-700">Câu ${i+1}</span>
+                        ${badge}
+                    </div>
+                    <div class="mb-3 text-gray-800">${formatText(item.question)}</div>
+                    ${item.image ? `<img src="${item.image}" class="w-1/2 mb-3 rounded border">` : ''}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded text-sm">
+                        <div>
+                            <span class="font-semibold text-gray-600">Câu trả lời của bạn:</span><br>
+                            <span class="${item.isCorrect ? 'text-green-600' : 'text-red-600'} font-bold">${item.user || "Không trả lời"}</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-600">Đáp án chính xác:</span><br>
+                            <span class="text-blue-600 font-bold">${item.correct || "(Xem lời giải)"}</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-dashed border-gray-300">
+                        <p class="font-bold text-gray-700 underline mb-1">Lời giải chi tiết:</p>
+                        <div class="text-gray-800 bg-blue-50 p-3 rounded text-sm leading-relaxed">
+                            ${item.solution ? formatText(item.solution) : "Chưa có lời giải chi tiết cho câu này."}
+                        </div>
+                    </div>
+                </div>`;
+                container.innerHTML += html;
+            });
+
+            // Render lại công thức toán trong phần lời giải
+            MathJax.typesetPromise();
+        }
+
+        // --- ADMIN HELPERS ---
+        function toggleAdminPanel() {
+            const sec = document.getElementById('admin-section');
+            sec.classList.toggle('hidden');
+        }
+
+        function checkAdmin() {
+            const pass = document.getElementById('admin-pass').value;
+            if(pass === "anphuc01") {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('upload-form').classList.remove('hidden');
+            } else {
+                alert("Mật khẩu không đúng!");
+            }
+        }
+
+        function uploadExam() {
+            const fileInput = document.getElementById('file-input');
+            const title = document.getElementById('exam-title').value;
+            const duration = document.getElementById('exam-duration').value;
+            
+            if(fileInput.files.length === 0) return alert("Vui lòng chọn file Word (.docx)!");
+            if(!title) return alert("Vui lòng nhập tên đề thi!");
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            const btn = document.getElementById('btn-upload');
+            btn.innerText = "Đang tải lên và xử lý...";
+            btn.disabled = true;
+            btn.classList.add("opacity-50", "cursor-not-allowed");
+
+            reader.onload = function(e) {
+                const rawBase64 = e.target.result.split(',')[1];
+                
+                const payload = {
+                    fileData: rawBase64,
+                    fileName: file.name,
+                    mimeType: file.type,
+                    examTitle: title,
+                    duration: duration
+                };
+
+                // Dùng mode 'no-cors' để post file lớn mà không bị lỗi cross-origin chặn
+                // Tuy nhiên ta sẽ không nhận được JSON response success.
+                // Ta sẽ giả định thành công sau khoảng thời gian chờ hoặc dùng alert đơn giản.
+                
+                fetch(API_URL + "?action=uploadExam", {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(() => {
+                    // Do no-cors nên không biết chính xác khi nào xong data return
+                    // Nhưng request đã gửi đi.
+                    alert("Đã gửi yêu cầu tạo đề! Hệ thống đang xử lý ngầm trên Google Drive.\nVui lòng đợi khoảng 10-20 giây rồi bấm 'Làm mới danh sách' để thấy đề thi.");
+                    
+                    document.getElementById('upload-status').innerText = "Đã gửi file. Vui lòng đợi hệ thống xử lý...";
+                    btn.innerText = "Upload & Tạo đề";
+                    btn.disabled = false;
+                    btn.classList.remove("opacity-50", "cursor-not-allowed");
+                    
+                    // Reset form
+                    document.getElementById('exam-title').value = "";
+                    document.getElementById('file-input').value = "";
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Có lỗi xảy ra khi upload.");
+                    btn.disabled = false;
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showSection(id) {
+            if(id === 'home') {
+                document.getElementById('home-section').classList.remove('hidden');
+                document.getElementById('exam-section').classList.add('hidden');
+                document.getElementById('result-section').classList.add('hidden');
+                document.getElementById('admin-section').classList.add('hidden');
+                fetchExams(); // Tải lại danh sách
+            }
+        }
+
+        // Tự động tải danh sách khi mở web
+        fetchExams();
+    </script>
+</body>
+</html>
