@@ -75,7 +75,6 @@
     <h2 class="text-2xl font-bold mb-4">Danh sách đề thi</h2>
     <div id="exam-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
 </div>
-
 <!-- ====================== LÀM BÀI ===================== -->
 <div id="exam-view" class="hidden">
     <div class="sticky top-16 bg-white p-3 shadow flex justify-between border-b border-blue-500">
@@ -107,7 +106,8 @@
 
 <script>
 /* ====================== CONFIG ===================== */
-const API = "https://script.google.com/macros/s/AKfycbxL6bAyneISlFUwe63XT_qGrPhjRYjFyGU0EmQ6nM3q_jIM1mhXHEp-7dQRnOO6xdpA/exec";
+const API =
+ "https://script.google.com/macros/s/AKfycbzLpV88SPYcjXgacYTHpkYzcRkajGRoFAG7SusDz0sY_UORAcOy2gPsdfkRgHrdaHzQ/exec";
 
 let currExId = "", questions = [], timerInt;
 
@@ -185,7 +185,6 @@ function startTimer(){
         if(t--<=0) submitTest();
     },1000);
 }
-
 /* ====================== RENDER CÂU HỎI ===================== */
 function renderQuestions(){
     let html = "";
@@ -196,20 +195,9 @@ function renderQuestions(){
         html += `<div class="font-bold mb-2">Câu ${i+1}: ${q.question}</div>`;
         if(q.image) html += `<img src="${q.image}" class="border rounded mb-3">`;
 
-        /* ---- CHOICE ---- */
-        if(q.type === "choice"){
-            html += renderChoice(q, i);
-        }
-
-        /* ---- TRUE/FALSE ---- */
-        if(q.type === "truefalse"){
-            html += renderTF(q, i);
-        }
-
-        /* ---- SHORT ANSWER ---- */
-        if(q.type === "short"){
-            html += renderShort(q, i);
-        }
+        if(q.type === "choice") html += renderChoice(q, i);
+        if(q.type === "truefalse") html += renderTF(q, i);
+        if(q.type === "short") html += renderShort(q, i);
 
         html += `</div>`;
     });
@@ -217,7 +205,7 @@ function renderQuestions(){
     document.getElementById('quiz-area').innerHTML = html;
 }
 
-/* ====================== RENDER CHOICE ===================== */
+/* ====================== CHOICE ===================== */
 function renderChoice(q, i){
     return `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -230,7 +218,7 @@ function renderChoice(q, i){
     `;
 }
 
-/* ====================== RENDER TRUE/FALSE ===================== */
+/* ====================== TRUE/FALSE ===================== */
 function renderTF(q, i){
     return `
         <div class="space-y-3">
@@ -249,7 +237,7 @@ function renderTF(q, i){
     `;
 }
 
-/* ====================== RENDER SHORT ===================== */
+/* ====================== SHORT ===================== */
 function renderShort(q, i){
     return `
         <input type="text" name="q${i}_short" placeholder="Nhập câu trả lời"
@@ -261,11 +249,9 @@ function renderShort(q, i){
 function submitTest(){
     clearInterval(timerInt);
 
-    let score = 0;
-    let detail = [];
+    let score = 0, detail = [];
 
     questions.forEach((q,i)=>{
-
         let userAns = null;
 
         if(q.type==="choice"){
@@ -279,20 +265,20 @@ function submitTest(){
                 if(q["tf"+op]){
                     let v = document.querySelector(`input[name="q${i}_${op}"]:checked`)?.value || "";
                     userAns[op] = v;
-                    if((v==="Đúng" && q.correct.includes(op)) ||
-                       (v==="Sai" && !q.correct.includes(op))){
-                        score++;  
-                    }
+
+                    let isCorrect = q.correct.includes(op);
+                    if((v==="Đúng" && isCorrect) || (v==="Sai" && !isCorrect))
+                        score++;
                 }
             });
         }
 
         if(q.type==="short"){
-            userAns = document.querySelector(`input[name="q${i}_short"]`)?.value.trim();
+            userAns = document.querySelector(`input[name="q${i}_short"]`)?.value.trim() || "";
             if(userAns == q.shortAns) score++;
         }
 
-        detail.push({ 
+        detail.push({
             question: q.question,
             type: q.type,
             user: userAns,
@@ -310,7 +296,11 @@ function submitTest(){
         detail
     };
 
-    fetch(API, {method:"POST", mode:"no-cors", body: JSON.stringify(payload)});
+    fetch(API, {
+        method:"POST",
+        mode:"no-cors",
+        body: JSON.stringify(payload)
+    });
 
     document.getElementById("exam-view").classList.add("hidden");
     document.getElementById("result-view").classList.remove("hidden");
@@ -318,25 +308,7 @@ function submitTest(){
     document.getElementById("score-display").innerText = score;
 }
 
-/* ====================== UPLOAD WORD ===================== */
-function processFile(){
-    const file = document.getElementById("file-word").files[0];
-    if(!file) return alert("Chọn file!");
-
-    document.getElementById("btn-up").innerHTML = '<div class="loading"></div>';
-    document.getElementById("btn-up").disabled = true;
-
-    let reader = new FileReader();
-    reader.onload = e=>{
-        mammoth.convertToHtml({arrayBuffer: e.target.result}).then(r=>{
-            let qs = parseWord(r.value);
-            uploadData(qs);
-        });
-    };
-    reader.readAsArrayBuffer(file);
-}
-
-/* ====================== PARSER 3 PHẦN ===================== */
+/* ====================== PARSER WORD (3 PHẦN) ===================== */
 function parseWord(html){
     const div = document.createElement("div");
     div.innerHTML = html;
@@ -387,7 +359,7 @@ function parseWord(html){
                 current.key = ln[0].toUpperCase();
             }
 
-            if(ln==="Đúng." || hasUnderline(ln)){
+            if(ln.includes("Đúng") || hasUnderline(ln)){
                 current.correct += current.key;
             }
         }
@@ -423,6 +395,11 @@ function uploadData(qs){
 }
 
 /* ====================== INIT ===================== */
+function showHome(){
+    document.getElementById("home-view").classList.remove("hidden");
+    document.getElementById("exam-view").classList.add("hidden");
+    document.getElementById("result-view").classList.add("hidden");
+}
 loadExams();
 
 </script>
