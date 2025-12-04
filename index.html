@@ -2,404 +2,484 @@
 <html lang="vi">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Thi Trực Tuyến - An Phúc</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hệ Thống Thi Trực Tuyến - An Phúc</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-
-    <script>
-        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
-    </script>
-    <script id="MathJax-script" async
-        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
-    <style>
-        img { max-width: 100%; height: auto; margin: 10px auto; display: block; }
-        .hidden { display: none; }
-        .loading {
-            border: 4px solid #ccc;
-            border-top: 4px solid #1d4ed8;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {100% {transform: rotate(360deg)}}
-    </style>
-</head>
-
-<body class="bg-gray-100 font-sans">
-
-<header class="bg-blue-700 text-white p-4 shadow flex justify-between sticky top-0 z-50">
-    <h1 class="font-bold text-lg">TRUNG TÂM AN PHÚC</h1>
-    <div>
-        <button onclick="showHome()" class="px-3 py-1 hover:bg-blue-600 rounded">Trang chủ</button>
-        <button onclick="toggleAdmin()" class="px-3 py-1 hover:bg-blue-600 rounded">Admin</button>
-    </div>
-</header>
-
-<div class="container mx-auto p-4 max-w-5xl">
-
-<!-- ====================== ADMIN ===================== -->
-<div id="admin-panel" class="hidden bg-white p-6 rounded shadow">
-    <h2 class="font-bold text-xl text-blue-600 mb-4">Upload Đề Thi</h2>
-
-    <div id="login-area">
-        <input type="password" id="admin-pass" placeholder="Mật khẩu" class="border p-2 rounded">
-        <button onclick="login()" class="bg-blue-600 text-white px-4 py-2 rounded">Đăng nhập</button>
-    </div>
-
-    <div id="upload-area" class="hidden">
-
-        <div class="grid grid-cols-2 gap-4 mt-4">
-            <input type="text" id="exam-title" placeholder="Tên đề thi" class="border p-2 rounded">
-            <input type="number" id="exam-dur" value="90" placeholder="Thời gian" class="border p-2 rounded">
-        </div>
-
-        <input type="file" id="file-word" accept=".docx"
-            class="mt-4 w-full file:rounded file:bg-blue-50 file:text-blue-700">
-
-        <button onclick="processFile()" id="btn-up"
-            class="mt-3 bg-green-600 text-white w-full py-2 rounded font-bold">Xử lý & Upload</button>
-
-        <div id="status" class="text-center mt-2 text-blue-700 font-bold"></div>
-
-        <pre id="preview-box" class="hidden bg-gray-100 border p-2 mt-2 text-xs h-40 overflow-y-scroll"></pre>
-    </div>
-</div>
-
-<!-- ====================== DANH SÁCH ĐỀ ===================== -->
-<div id="home-view">
-    <h2 class="text-2xl font-bold mb-4">Danh sách đề thi</h2>
-    <div id="exam-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-</div>
-<!-- ====================== LÀM BÀI ===================== -->
-<div id="exam-view" class="hidden">
-    <div class="sticky top-16 bg-white p-3 shadow flex justify-between border-b border-blue-500">
-        <h3 id="ex-title" class="font-bold text-blue-800"></h3>
-        <div id="timer" class="font-mono text-xl text-red-600 font-bold"></div>
-    </div>
-
-    <div id="student-info" class="bg-white p-4 rounded shadow mt-4">
-        <input id="std-name" placeholder="Họ tên" class="border p-2 rounded w-full mb-2">
-        <input id="std-class" placeholder="Lớp" class="border p-2 rounded w-full mb-2">
-        <button onclick="startTest()" class="bg-blue-600 text-white w-full py-2 rounded">Bắt đầu</button>
-    </div>
-
-    <div id="quiz-area" class="hidden space-y-6 mt-6"></div>
-
-    <div id="submit-btn" class="hidden pb-10 text-center">
-        <button onclick="submitTest()" class="bg-green-600 text-white px-10 py-2 rounded-full">Nộp bài</button>
-    </div>
-</div>
-
-<!-- KẾT QUẢ -->
-<div id="result-view" class="hidden bg-white p-6 rounded shadow text-center">
-    <h2 class="text-xl font-bold">Kết Quả</h2>
-    <div id="score-display" class="text-5xl text-blue-600 font-extrabold my-4"></div>
-    <div id="detail-review" class="text-left space-y-4"></div>
-</div>
-
-</div>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
 <script>
-/* ====================== CONFIG ===================== */
+MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+  svg: { fontCache: 'global' }
+}
+</script>
+<script async id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+  img { max-width: 100%; height: auto; display: block; margin: 10px auto; }
+  .hidden { display: none; }
+  .loading {
+    border: 4px solid #ccc;
+    border-top: 4px solid #14da8d;
+    border-radius: 50%;
+    width: 25px; height: 25px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
+
+</head>
+
+<body class="bg-gray-100">
+
+<div class="max-w-4xl mx-auto p-4">
+
+  <h1 class="text-2xl font-bold text-center mb-6">TRUNG TÂM AN PHÚC</h1>
+
+  <!-- NAVBAR -->
+  <div class="flex justify-between mb-4">
+    <button onclick="showExamList()" class="text-blue-600">Trang chủ</button>
+    <button onclick="toggleAdmin()" class="text-blue-600">Admin</button>
+  </div>
+
+  <!-- ================= DANH SÁCH ĐỀ ================= -->
+  <div id="exam-list" class="bg-white p-4 rounded shadow">
+    <h2 class="text-xl font-semibold mb-3">Danh sách đề thi</h2>
+    <div id="exam-items" class="space-y-3 text-lg"></div>
+  </div>
+
+  <!-- ================= ADMIN LOGIN ================= -->
+  <div id="admin-panel" class="hidden bg-white p-4 mt-4 rounded shadow">
+    <h2 class="text-xl font-semibold mb-2">Admin</h2>
+
+    <input id="admin-pass" type="password" placeholder="Nhập mật khẩu"
+      class="border p-2 rounded w-full mb-3">
+
+    <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 rounded">
+      Đăng nhập
+    </button>
+
+    <div id="login-area" class="hidden mt-4">
+
+      <h3 class="text-lg font-semibold mb-2">Upload Đề Thi</h3>
+
+      <input id="exam-title" class="border p-2 w-full rounded mb-2"
+        placeholder="Tên đề thi">
+
+      <input id="exam-duration" class="border p-2 w-full rounded mb-2"
+        placeholder="Thời gian (phút)" type="number">
+
+      <input id="file-word" type="file" class="mb-3">
+
+      <button onclick="processFile()"
+        class="bg-green-600 text-white px-4 py-2 rounded w-full">
+        Xử lý & Upload
+      </button>
+
+      <div id="status" class="mt-2 text-blue-600 font-semibold"></div>
+
+    </div>
+  </div>
+
+  <!-- PREVIEW DEBUG -->
+  <div id="preview-box"
+    class="hidden bg-white p-4 mt-4 rounded shadow text-sm whitespace-pre-wrap">
+  </div>
+
+  <!-- ================= KHU VỰC LÀM BÀI ================= -->
+  <div id="quiz-area" class="hidden mt-4 bg-white p-4 rounded shadow"></div>
+
+  <div id="submit-btn" class="hidden mt-4 text-center">
+    <button onclick="submitTest()"
+      class="bg-green-600 text-white px-6 py-2 rounded-full">
+      Nộp bài
+    </button>
+  </div>
+
+  <!-- ================= KẾT QUẢ ================= -->
+  <div id="result-view" class="hidden bg-white p-4 mt-4 rounded shadow">
+    <h2 class="text-xl font-bold">Kết Quả</h2>
+    <div id="score-display" class="text-5xl font-extrabold my-4 text-blue-600"></div>
+    <div id="detail-review" class="space-y-4 text-left"></div>
+  </div>
+
+</div>
+<script>
+
+/* ==================== CONFIG ==================== */
 const API =
- "https://script.google.com/macros/s/AKfycbwu7GrnorvMmGjrbkHIuExOzULhtOFQcxftlPohNz_RAf6VAkNQVMw6iVcsRlSo9YWK/exec";
+ "https://script.google.com/macros/s/AKfycbxhVLoSSAUgHmJtgXlXSNmmfQGW65R1wdQ02vNDeZQSPhO7YtBrncihDEvXMASFbbSZ/exec";
 
-let currExId = "", questions = [], timerInt;
+let currExamId = "";
+let questions = [];
 
-/* ====================== ADMIN ===================== */
-function toggleAdmin(){ document.getElementById('admin-panel').classList.toggle('hidden'); }
+/* ==================== ADMIN ==================== */
+
+function toggleAdmin(){
+  document.getElementById('admin-panel').classList.toggle('hidden');
+}
+
 function login(){
-    if(document.getElementById("admin-pass").value==="anphuc"){
-        document.getElementById("login-area").classList.add("hidden");
-        document.getElementById("upload-area").classList.remove("hidden");
-    } else alert("Sai mật khẩu!");
+  const pw = document.getElementById("admin-pass").value;
+  if(pw === "anphuc"){
+    document.getElementById("login-area").classList.remove("hidden");
+    document.getElementById("upload-area")?.classList.remove("hidden");
+  } else {
+    alert("Sai mật khẩu!");
+  }
 }
 
-/* ====================== LOAD EXAMS ===================== */
-async function loadExams() {
-    document.getElementById('exam-list').innerHTML = '<div class="loading mx-auto"></div>';
+/* =============================================================
+   ===============   UPLOAD + PARSE WORD   =====================
+   ============================================================= */
 
-    try {
-        let res = await fetch(API + "?action=getExams");
-        let txt = await res.text();
-        let data = JSON.parse(txt);
+function processFile(){
+  const file = document.getElementById("file-word").files[0];
+  if(!file) return alert("Chưa chọn file Word!");
 
-        let html = "";
-        data.data.forEach(ex => {
-            html += `
-            <div class="bg-white p-4 shadow rounded border-l-4 border-blue-600">
-                <h3 class="font-bold">${ex.title}</h3>
-                <p>${ex.duration} phút</p>
-                <button onclick="prepExam('${ex.id}', '${ex.title}', ${ex.duration})"
-                    class="mt-2 bg-blue-100 text-blue-700 px-4 py-1 rounded">Thi ngay</button>
-            </div>`;
-        });
-        document.getElementById("exam-list").innerHTML = html;
-    }
-    catch (e){
-        document.getElementById("exam-list").innerHTML = "Lỗi tải đề!";
-    }
-}
+  document.getElementById("status").innerText = "Đang xử lý file Word...";
 
-/* ====================== CHUYỂN SANG LÀM BÀI ===================== */
-function prepExam(id, title, dur){
-    currExId = id;
-    window.duration = dur * 60;
+  let reader = new FileReader();
+  reader.onload = e=>{
+    mammoth.convertToHtml({arrayBuffer: e.target.result}).then(r=>{
 
-    document.getElementById("home-view").classList.add("hidden");
-    document.getElementById("exam-view").classList.remove("hidden");
+      // DEBUG preview
+      document.getElementById("preview-box").classList.remove("hidden");
+      document.getElementById("preview-box").innerText = r.value;
 
-    document.getElementById("ex-title").innerText = title;
-}
+      // PARSE đề
+      questions = parseWord(r.value);
 
-/* ====================== BẮT ĐẦU LÀM BÀI ===================== */
-async function startTest(){
-    if(!document.getElementById("std-name").value) return alert("Nhập tên!");
+      alert("Parser đọc được: " + questions.length + " câu hỏi.");
 
-    document.getElementById("student-info").classList.add("hidden");
-    document.getElementById("quiz-area").classList.remove("hidden");
-
-    let res = await fetch(API + `?action=getQuestions&examId=${currExId}`);
-    let txt = await res.text();
-    let data = JSON.parse(txt);
-    questions = data.data;
-
-    renderQuestions();
-
-    document.getElementById("submit-btn").classList.remove("hidden");
-
-    startTimer();
-    MathJax.typesetPromise();
-}
-
-function startTimer(){
-    let t = window.duration;
-    timerInt = setInterval(()=>{
-        let m = Math.floor(t/60), s = t%60;
-        document.getElementById("timer").innerText = `${m}:${s<10?'0'+s:s}`;
-        if(t--<=0) submitTest();
-    },1000);
-}
-/* ====================== RENDER CÂU HỎI ===================== */
-function renderQuestions(){
-    let html = "";
-
-    questions.forEach((q, i)=>{
-        html += `<div class="bg-white p-4 rounded shadow">`;
-
-        html += `<div class="font-bold mb-2">Câu ${i+1}: ${q.question}</div>`;
-        if(q.image) html += `<img src="${q.image}" class="border rounded mb-3">`;
-
-        if(q.type === "choice") html += renderChoice(q, i);
-        if(q.type === "truefalse") html += renderTF(q, i);
-        if(q.type === "short") html += renderShort(q, i);
-
-        html += `</div>`;
+      // Upload
+      uploadData(questions);
     });
-
-    document.getElementById('quiz-area').innerHTML = html;
+  };
+  reader.readAsArrayBuffer(file);
 }
 
-/* ====================== CHOICE ===================== */
-function renderChoice(q, i){
-    return `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-            ${["A","B","C","D"].map(op => q["opt"+op] ? `
-                <label class="border p-2 rounded flex hover:bg-blue-50 cursor-pointer">
-                    <input type="radio" name="q${i}" value="${op}" class="mr-2 mt-1">
-                    <span><b>${op}.</b> ${q["opt"+op]}</span>
-                </label>` : "").join("")}
-        </div>
-    `;
-}
+/* =============================================================
+   ======================= PARSER WORD ==========================
+   ============================================================= */
 
-/* ====================== TRUE/FALSE ===================== */
-function renderTF(q, i){
-    return `
-        <div class="space-y-3">
-            ${["A","B","C","D"].map(op => q["tf"+op] ? `
-                <div class="border p-2 rounded">
-                    <div class="mb-1"><b>${op.toLowerCase()})</b> ${q["tf"+op]}</div>
-                    <label class="mr-4">
-                        <input type="radio" name="q${i}_${op}" value="Đúng"> Đúng
-                    </label>
-                    <label>
-                        <input type="radio" name="q${i}_${op}" value="Sai"> Sai
-                    </label>
-                </div>
-            ` : "").join("")}
-        </div>
-    `;
-}
-
-/* ====================== SHORT ===================== */
-function renderShort(q, i){
-    return `
-        <input type="text" name="q${i}_short" placeholder="Nhập câu trả lời"
-            class="border p-2 rounded w-full">
-    `;
-}
-
-/* ====================== NỘP BÀI ===================== */
-function submitTest(){
-    clearInterval(timerInt);
-
-    let score = 0, detail = [];
-
-    questions.forEach((q,i)=>{
-        let userAns = null;
-
-        if(q.type==="choice"){
-            userAns = document.querySelector(`input[name="q${i}"]:checked`)?.value || "";
-            if(userAns === q.correct) score++;
-        }
-
-        if(q.type==="truefalse"){
-            userAns = {};
-            ["A","B","C","D"].forEach(op=>{
-                if(q["tf"+op]){
-                    let v = document.querySelector(`input[name="q${i}_${op}"]:checked`)?.value || "";
-                    userAns[op] = v;
-
-                    let isCorrect = q.correct.includes(op);
-                    if((v==="Đúng" && isCorrect) || (v==="Sai" && !isCorrect))
-                        score++;
-                }
-            });
-        }
-
-        if(q.type==="short"){
-            userAns = document.querySelector(`input[name="q${i}_short"]`)?.value.trim() || "";
-            if(userAns == q.shortAns) score++;
-        }
-
-        detail.push({
-            question: q.question,
-            type: q.type,
-            user: userAns,
-            correct: q.correct || q.shortAns,
-            solution: q.solution
-        });
-    });
-
-    let payload = {
-        action: "submitExam",
-        student_name: document.getElementById("std-name").value,
-        class_name: document.getElementById("std-class").value,
-        exam_title: document.getElementById("ex-title").innerText,
-        score: score,
-        detail
-    };
-
-    fetch(API, {
-        method:"POST",
-        mode:"no-cors",
-        body: JSON.stringify(payload)
-    });
-
-    document.getElementById("exam-view").classList.add("hidden");
-    document.getElementById("result-view").classList.remove("hidden");
-
-    document.getElementById("score-display").innerText = score;
-}
-
-/* ====================== PARSER WORD (3 PHẦN) ===================== */
 function parseWord(html){
-    const div = document.createElement("div");
-    div.innerHTML = html;
+  const lines = html
+      .replace(/<[^>]+>/g, '')     // bỏ toàn bộ thẻ html
+      .replace(/&nbsp;/g, ' ')
+      .split(/\n|\r/)
+      .map(s=>s.trim())
+      .filter(s=>s.length > 0);
 
-    let lines = [...div.querySelectorAll("p")].map(p=>p.innerHTML.trim());
+  let arr = [];
+  let part = 1;
 
-    let mode = "choice";
-    let out = [];
-    let current={};
+  for(let line of lines){
 
-    const isTF = t=>t.match(/^[abcd]\)/i);
-    const hasUnderline = t=>t.includes("<u>");
+    // Chuyển sang phần II
+    if(line.toUpperCase().includes("PHẦN II")) part = 2;
 
-    lines.forEach(ln=>{
+    // Chuyển sang phần III
+    if(line.toUpperCase().includes("PHẦN III")) part = 3;
 
-        if(ln.includes("PHẦN II")) { mode="tf"; return; }
-        if(ln.includes("PHẦN III")) { mode="short"; return; }
+    //------------------------------------------------
+    // PART 1: TRẮC NGHIỆM 4 LỰA CHỌN
+    //------------------------------------------------
+    if(part === 1){
 
-        /* --- PHẦN I --- */
-        if(mode==="choice"){
-            let m = ln.match(/^Câu\s*\d+\.*\s*(.*)/i);
-            if(m){
-                if(current.question) out.push(current);
-                current = { type:"choice", question:m[1], optA:"",optB:"",optC:"",optD:"", correct:"", solution:"" };
-                return;
-            }
-            if(ln.startsWith("A.")) current.optA = ln.slice(2).trim();
-            if(ln.startsWith("B.")) current.optB = ln.slice(2).trim();
-            if(ln.startsWith("C.")) current.optC = ln.slice(2).trim();
-            if(ln.startsWith("D.")) current.optD = ln.slice(2).trim();
+      // Dạng 1: "Câu ... A. ... B. ... C. ... D. ..."
+      let m = line.match(/^Câu\s*\d+[:.)]?\s*(.*)/i);
+      if(m){
+        let content = m[1];
 
-            if(ln.includes("Chọn")){
-                let c = ln.match(/Chọn\s*([A-D])/i);
-                if(c) current.correct = c[1].toUpperCase();
-            }
-        }
+        let optA = "", optB = "", optC = "", optD = "";
 
-        /* --- PHẦN II --- */
-        if(mode==="tf"){
-            if(ln.startsWith("a)") || ln.startsWith("b)") || ln.startsWith("c)") || ln.startsWith("d)")){
-                out.push({
-                    type:"truefalse",
-                    question: ln.replace(/^.\)/,"").trim(),
-                    tfA:null, tfB:null, tfC:null, tfD:null,
-                    correct:""
-                });
-                current = out[out.length-1];
-                current.key = ln[0].toUpperCase();
-            }
+        const pattA = /(A\.|A\))\s*(.*?)(?=B\.|B\))/i;
+        const pattB = /(B\.|B\))\s*(.*?)(?=C\.|C\))/i;
+        const pattC = /(C\.|C\))\s*(.*?)(?=D\.|D\))/i;
+        const pattD = /(D\.|D\))\s*(.*)$/i;
 
-            if(ln.includes("Đúng") || hasUnderline(ln)){
-                current.correct += current.key;
-            }
-        }
+        optA = (content.match(pattA)?.[2] || "").trim();
+        optB = (content.match(pattB)?.[2] || "").trim();
+        optC = (content.match(pattC)?.[2] || "").trim();
+        optD = (content.match(pattD)?.[2] || "").trim();
 
-        /* --- PHẦN III --- */
-        if(mode==="short"){
-            if(ln.includes("Đáp số")){
-                let num = ln.replace("Đáp số:","").replace(".","").trim();
-                out.push({
-                    type:"short",
-                    question:"(Câu trả lời ngắn)",
-                    shortAns:num
-                });
-            }
-        }
+        arr.push({
+          type: "choice",
+          question: content.replace(/A\.|A\).*/i, "").trim(),
+          optA, optB, optC, optD,
+          correct: "",
+          solution: "",
+          tfA: "", tfB: "", tfC: "", tfD: "",
+          shortAns: ""
+        });
+      }
+    }
 
+    //------------------------------------------------
+    // PART 2: ĐÚNG SAI
+    //------------------------------------------------
+    if(part === 2){
+      if(line.startsWith("_")){   // gạch chân = đúng
+        arr.push({
+          type: "truefalse",
+          question: line.replace(/^_+/, '').trim(),
+          optA: "", optB: "", optC: "", optD: "",
+          correct: "ĐÚNG",
+          solution: "",
+          tfA: "ĐÚNG",
+          tfB: "SAI",
+          tfC: "", tfD: "",
+          shortAns: ""
+        });
+      }
+      else {
+        arr.push({
+          type: "truefalse",
+          question: line.trim(),
+          optA: "", optB: "", optC: "", optD: "",
+          correct: "SAI",
+          solution: "",
+          tfA: "ĐÚNG",
+          tfB: "SAI",
+          tfC: "", tfD: "",
+          shortAns: ""
+        });
+      }
+    }
+
+    //------------------------------------------------
+    // PART 3: TỰ LUẬN / TRẢ LỜI NGẮN
+    //------------------------------------------------
+    if(part === 3){
+      arr.push({
+        type: "short",
+        question: line.trim(),
+        optA: "", optB: "", optC: "", optD: "",
+        correct: "",
+        solution: "",
+        tfA: "", tfB: "", tfC: "", tfD: "",
+        shortAns: ""
+      });
+    }
+  }
+
+  return arr;
+}
+
+/* =============================================================
+   ================== UPLOAD LÊN GOOGLE SHEET ==================
+   ============================================================= */
+
+async function uploadData(list){
+  const examTitle = document.getElementById("exam-title").value.trim();
+  const examDuration = document.getElementById("exam-duration").value.trim();
+
+  if(!examTitle || !examDuration){
+    alert("Nhập tên đề + thời gian!");
+    return;
+  }
+
+  document.getElementById("status").innerText = "Đang upload...";
+
+  let payload = {
+    action: "upload",
+    title: examTitle,
+    duration: examDuration,
+    questions: list
+  };
+
+  const res = await fetch(API, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+
+  const js = await res.json();
+
+  if(js.status === "success"){
+    alert("Upload thành công!");
+    loadExams();
+  } else {
+    alert("Lỗi upload: " + js.message);
+  }
+
+  document.getElementById("status").innerText = "";
+}
+
+</script>
+<script>
+
+/* =============================================================
+   ===================== LOAD DANH SÁCH ĐỀ =====================
+   ============================================================= */
+
+async function loadExams(){
+  const res = await fetch(API + "?action=getExams");
+  const js = await res.json();
+
+  let box = document.getElementById("exam-items");
+  box.innerHTML = "";
+
+  js.data.forEach(ex=>{
+    let div = document.createElement("div");
+    div.className = "p-3 border rounded bg-gray-50 cursor-pointer";
+    div.innerHTML = `
+      <b>${ex.title}</b> - ${ex.duration} phút
+    `;
+    div.onclick = ()=>startExam(ex.id, ex.title, ex.duration);
+    box.appendChild(div);
+  });
+}
+
+/* =============================================================
+   ====================== BẮT ĐẦU LÀM BÀI =======================
+   ============================================================= */
+
+async function startExam(id, title, duration){
+  currExamId = id;
+
+  const res = await fetch(API + "?action=getQuestions&exam_id=" + id);
+  const js = await res.json();
+  questions = js.data;
+
+  document.getElementById("exam-list").classList.add("hidden");
+  document.getElementById("quiz-area").classList.remove("hidden");
+  document.getElementById("submit-btn").classList.remove("hidden");
+
+  renderQuestions(questions);
+}
+
+/* =============================================================
+   ================= RENDER CÂU HỎI TRONG BÀI ===================
+   ============================================================= */
+
+function renderQuestions(list){
+  let html = "";
+
+  list.forEach((q, i)=>{
+
+    html += `<div class="p-4 border rounded mb-4">`;
+    html += `<div class="font-semibold mb-2">Câu ${i+1}. ${q.question}</div>`;
+
+    if(q.type === "choice"){
+      html += choiceRender(q, i);
+    }
+    if(q.type === "truefalse"){
+      html += tfRender(q, i);
+    }
+    if(q.type === "short"){
+      html += shortRender(q, i);
+    }
+
+    html += `</div>`;
+  });
+
+  document.getElementById("quiz-area").innerHTML = html;
+  MathJax.typeset();
+}
+
+function choiceRender(q, idx){
+  return `
+    <label class="block"><input type="radio" name="q${idx}" value="A"> A. ${q.optA}</label>
+    <label class="block"><input type="radio" name="q${idx}" value="B"> B. ${q.optB}</label>
+    <label class="block"><input type="radio" name="q${idx}" value="C"> C. ${q.optC}</label>
+    <label class="block"><input type="radio" name="q${idx}" value="D"> D. ${q.optD}</label>
+  `;
+}
+
+function tfRender(q, idx){
+  return `
+    <label class="block"><input type="radio" name="q${idx}" value="ĐÚNG"> Đúng</label>
+    <label class="block"><input type="radio" name="q${idx}" value="SAI"> Sai</label>
+  `;
+}
+
+function shortRender(q, idx){
+  return `
+    <input
+      type="text"
+      name="q${idx}"
+      class="border p-2 rounded w-full"
+      placeholder="Nhập câu trả lời..."
+    >
+  `;
+}
+
+/* =============================================================
+   ========================= NỘP BÀI ============================
+   ============================================================= */
+
+function submitTest(){
+  if(!confirm("Bạn chắc chắn nộp bài chứ?")) return;
+
+  let score = 0;
+  let detail = [];
+
+  questions.forEach((q, i)=>{
+    let ans = document.querySelector(`input[name="q${i}"]:checked`)?.value
+           || document.querySelector(`input[name="q${i}"]`)?.value
+           || "";
+
+    let isCorrect = false;
+
+    if(q.type === "choice"){
+      if(ans === q.correct) isCorrect = true;
+    }
+
+    if(q.type === "truefalse"){
+      if(ans === q.correct) isCorrect = true;
+    }
+
+    if(q.type === "short"){
+      if(ans.trim().toLowerCase() === q.shortAns.trim().toLowerCase()){
+        isCorrect = true;
+      }
+    }
+
+    if(isCorrect) score++;
+
+    detail.push({
+      question: q.question,
+      your: ans,
+      correct: q.correct || q.shortAns
     });
+  });
 
-    return out;
+  showResult(score, detail);
 }
 
-/* ====================== UPLOAD ===================== */
-function uploadData(qs){
-    const payload = {
-        action:"uploadParsedExam",
-        examTitle: document.getElementById("exam-title").value,
-        duration: document.getElementById("exam-dur").value,
-        questions: qs
-    };
+/* =============================================================
+   ====================== HIỂN THỊ KẾT QUẢ =====================
+   ============================================================= */
 
-    fetch(API,{method:"POST",mode:"no-cors",body:JSON.stringify(payload)})
-    .then(()=>{ alert("Upload thành công!"); location.reload();});
+function showResult(score, detail){
+
+  document.getElementById("quiz-area").classList.add("hidden");
+  document.getElementById("submit-btn").classList.add("hidden");
+  document.getElementById("result-view").classList.remove("hidden");
+
+  document.getElementById("score-display").innerText = score + "/" + questions.length;
+
+  let html = "";
+  detail.forEach((d, i)=>{
+    html += `
+      <div class="p-3 border rounded">
+        <b>Câu ${i+1}</b><br>
+        <i>${d.question}</i><br>
+        <span class="text-blue-600">Bạn chọn: ${d.your}</span><br>
+        <span class="text-green-700">Đáp án: ${d.correct}</span>
+      </div>
+    `;
+  });
+
+  document.getElementById("detail-review").innerHTML = html;
 }
 
-/* ====================== INIT ===================== */
-function showHome(){
-    document.getElementById("home-view").classList.remove("hidden");
-    document.getElementById("exam-view").classList.add("hidden");
-    document.getElementById("result-view").classList.add("hidden");
-}
+/* =============================================================
+   ======================== KHỞI TẠO ============================
+   ============================================================= */
 loadExams();
 
 </script>
