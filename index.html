@@ -166,108 +166,115 @@ function processFile(){
    ============================================================= */
 
 function parseWord(html){
-  const lines = html
-      .replace(/<[^>]+>/g, '')     // bỏ toàn bộ thẻ html
-      .replace(/&nbsp;/g, ' ')
-      .split(/\n|\r/)
-      .map(s=>s.trim())
-      .filter(s=>s.length > 0);
+  // Bước 1: Làm sạch HTML thành text
+  let text = html
+    .replace(/<img[^>]*>/g, "[HINH]")      // đánh dấu vị trí hình
+    .replace(/<[^>]+>/g, "\n")             // đổi thẻ thành xuống dòng
+    .replace(/&nbsp;/g, " ")
+    .replace(/\n+/g, "\n")
+    .trim();
 
-  let arr = [];
+  let lines = text.split("\n").map(x => x.trim()).filter(x => x.length > 0);
+
   let part = 1;
+  let arr = [];
+
+  // Bộ đệm
+  let buffer = "";
+  let optA="", optB="", optC="", optD="";
+
+  function pushChoice(){
+    if(buffer.trim().length === 0) return;
+    arr.push({
+      type: "choice",
+      question: buffer.trim(),
+      optA, optB, optC, optD,
+      correct: "",
+      solution: "",
+      tfA:"", tfB:"", tfC:"", tfD:"",
+      shortAns:""
+    });
+    buffer=""; optA=""; optB=""; optC=""; optD="";
+  }
 
   for(let line of lines){
 
-    // Chuyển sang phần II
-    if(line.toUpperCase().includes("PHẦN II")) part = 2;
+    // Detect PHẦN II
+    if(line.toUpperCase().includes("PHẦN II")){
+      pushChoice();
+      part = 2;
+      continue;
+    }
 
-    // Chuyển sang phần III
-    if(line.toUpperCase().includes("PHẦN III")) part = 3;
+    // Detect PHẦN III
+    if(line.toUpperCase().includes("PHẦN III")){
+      pushChoice();
+      part = 3;
+      continue;
+    }
 
-    //------------------------------------------------
-    // PART 1: TRẮC NGHIỆM 4 LỰA CHỌN
-    //------------------------------------------------
+    // ================== PHẦN I ==================
     if(part === 1){
 
-      // Dạng 1: "Câu ... A. ... B. ... C. ... D. ..."
-      let m = line.match(/^Câu\s*\d+[:.)]?\s*(.*)/i);
-      if(m){
-        let content = m[1];
+      // Loại "Lời giải", "Chọn A/B/C/D"
+      if(/^Lời giải/i.test(line)) continue;
+      if(/^Chọn\s*[A-D]/i.test(line)) continue;
 
-        let optA = "", optB = "", optC = "", optD = "";
-
-        const pattA = /(A\.|A\))\s*(.*?)(?=B\.|B\))/i;
-        const pattB = /(B\.|B\))\s*(.*?)(?=C\.|C\))/i;
-        const pattC = /(C\.|C\))\s*(.*?)(?=D\.|D\))/i;
-        const pattD = /(D\.|D\))\s*(.*)$/i;
-
-        optA = (content.match(pattA)?.[2] || "").trim();
-        optB = (content.match(pattB)?.[2] || "").trim();
-        optC = (content.match(pattC)?.[2] || "").trim();
-        optD = (content.match(pattD)?.[2] || "").trim();
-
-        arr.push({
-          type: "choice",
-          question: content.replace(/A\.|A\).*/i, "").trim(),
-          optA, optB, optC, optD,
-          correct: "",
-          solution: "",
-          tfA: "", tfB: "", tfC: "", tfD: "",
-          shortAns: ""
-        });
+      // Dò đáp án
+      if(/^A\./i.test(line)){ optA = line.replace(/^A\.\s*/i,""); continue; }
+      if(/^B\./i.test(line)){ optB = line.replace(/^B\.\s*/i,""); continue; }
+      if(/^C\./i.test(line)){ optC = line.replace(/^C\.\s*/i,""); continue; }
+      if(/^D\./i.test(line)){
+        optD = line.replace(/^D\.\s*/i,"");
+        pushChoice();
+        continue;
       }
+
+      // Nếu là dòng văn bản → thuộc câu hỏi
+      buffer += " " + line;
+      continue;
     }
 
-    //------------------------------------------------
-    // PART 2: ĐÚNG SAI
-    //------------------------------------------------
+    // ================== PHẦN II ==================
     if(part === 2){
-      if(line.startsWith("_")){   // gạch chân = đúng
+      let m = line.match(/^([abcd]\))\s*(.*)/i);
+      if(m){
         arr.push({
-          type: "truefalse",
-          question: line.replace(/^_+/, '').trim(),
-          optA: "", optB: "", optC: "", optD: "",
-          correct: "ĐÚNG",
-          solution: "",
-          tfA: "ĐÚNG",
-          tfB: "SAI",
-          tfC: "", tfD: "",
-          shortAns: ""
+          type:"truefalse",
+          question: m[2],
+          optA:"", optB:"",
+          optC:"", optD:"",
+          correct:"",
+          solution:"",
+          tfA:"ĐÚNG",
+          tfB:"SAI",
+          tfC:"",
+          tfD:"",
+          shortAns:""
         });
       }
-      else {
-        arr.push({
-          type: "truefalse",
-          question: line.trim(),
-          optA: "", optB: "", optC: "", optD: "",
-          correct: "SAI",
-          solution: "",
-          tfA: "ĐÚNG",
-          tfB: "SAI",
-          tfC: "", tfD: "",
-          shortAns: ""
-        });
-      }
+      continue;
     }
 
-    //------------------------------------------------
-    // PART 3: TỰ LUẬN / TRẢ LỜI NGẮN
-    //------------------------------------------------
+    // ================== PHẦN III ==================
     if(part === 3){
       arr.push({
-        type: "short",
-        question: line.trim(),
-        optA: "", optB: "", optC: "", optD: "",
-        correct: "",
-        solution: "",
-        tfA: "", tfB: "", tfC: "", tfD: "",
-        shortAns: ""
+        type:"short",
+        question: line,
+        optA:"", optB:"", optC:"", optD:"",
+        correct:"",
+        solution:"",
+        tfA:"", tfB:"", tfC:"", tfD:"",
+        shortAns:""
       });
+      continue;
     }
   }
 
+  pushChoice();
   return arr;
 }
+
 
 /* =============================================================
    ================== UPLOAD LÊN GOOGLE SHEET ==================
